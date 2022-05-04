@@ -9,22 +9,23 @@ module Main exposing (..)
 
 import Browser
 import Html exposing (..)
+import Http exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
-
-
 
 -- MAIN
 
 
 main =
-  Browser.sandbox { init = init, update = update, view = view }
-
+  Browser.element 
+   { init = init
+   , update = update
+   , subscriptions = subscriptions
+   , view = view
+   }
 
 
 -- MODEL
-
-
 type alias Model = {
     username: String, 
     password: String, 
@@ -32,39 +33,54 @@ type alias Model = {
   }
 
 
-init : Model
-init = { 
+init : () -> (Model, Cmd Msg)
+init _ = 
+  ( { 
     username = "hansi", 
     password = "password",
     loginStatus = "fill in form!"
-  }
+    }
+  , Cmd.none
+  )
 
 
 
 -- UPDATE
-
-
 type Msg
   = ChangeUsername String
   | ChangePassword String
   | Login
+  | LoggedIn (Result Http.Error String)
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
     ChangeUsername newUsername ->
-      { model | username = newUsername }
+      ({ model | username = newUsername }, Cmd.none)
     ChangePassword newPassword -> 
-      { model | password = newPassword }
+      ({ model | password = newPassword }, Cmd.none)
     Login -> 
-      { model | loginStatus = "success" }
+      (
+      { model | loginStatus = "Sent Login" }
+      , Http.get { url = "https://elm-lang.org/assets/public-opinion.txt"
+      , expect = Http.expectString LoggedIn
+      })
+    LoggedIn result -> 
+      case result of 
+        Ok text -> 
+          ({ model | loginStatus = text }, Cmd.none)
+        Err _ -> 
+          ({ model | loginStatus = "Login Failed" }, Cmd.none)
 
+-- SUBSCRIPTIONS
+
+subscriptions : Model -> Sub Msg
+subscriptions model = 
+  Sub.none
 
 
 -- VIEW
-
-
 view : Model -> Html Msg
 view model =
   div [] 
